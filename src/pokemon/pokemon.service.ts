@@ -1,82 +1,83 @@
-import {BadRequestException, Injectable, InternalServerErrorException, NotFoundException} from '@nestjs/common';
-import { CreatePokemonDto } from './dto/create-pokemon.dto';
-import { UpdatePokemonDto } from './dto/update-pokemon.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { Model, isValidObjectId } from 'mongoose';
 import { Pokemon } from './entities/pokemon.entity';
-import { InjectModel } from '@nestjs/mongoose';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { CreatePokemonDto } from './dto/create-pokemon.dto';
+import { UpdatePokemonDto } from './dto/update-pokemon.dto';
+import axios from 'axios';
 
 @Injectable()
 export class PokemonService {
   constructor(
-    @InjectModel(Pokemon.name)
-    private readonly pokemonModel: Model<Pokemon>
+    @InjectModel(Pokemon.name) private readonly pokemonModel: Model<Pokemon>,
   ) {}
 
-  async create(createPokemonDto: CreatePokemonDto) {
-    createPokemonDto.name = createPokemonDto.name.toLowerCase();
+  async create(createPokemonDto: CreatePokemonDto): Promise<Pokemon> {
+    const pokemon = new this.pokemonModel(createPokemonDto);
+    return pokemon.save();
+  }
 
+  async findAll(): Promise<Pokemon[]> {
+    return this.pokemonModel.find();
+  }
+
+  async findOne(term: string): Promise<Pokemon> {
+  let pokemon: Pokemon | null = null;
+
+  // 1. Si es un ObjectId válido
+  if (isValidObjectId(term)) {
+    pokemon = await this.pokemonModel.findById(term);
+    if (pokemon) return pokemon;
+  }
+
+  // 2. Si es un nombre (string)
+  pokemon = await this.pokemonModel.findOne({ name: term.toLowerCase().trim() });
+  if (pokemon) return pokemon;
+
+  // 3. Si es un número (pokeId)
+  const pokeId = Number(term);
+  if (!isNaN(pokeId)) {
+    pokemon = await this.pokemonModel.findOne({ pokeId });
+    if (pokemon) return pokemon;
+  }
+
+  // 4. Si no encuentra nada
+  throw new NotFoundException(`Pokemon with identifier "${term}" not found`);
+}
+
+  async getFromExternalAPI(term: string) {
     try {
-      const pokemon = await this.pokemonModel.create(createPokemonDto);
-      return pokemon;
+      const { data } = await axios.get(`https://pokeapi.co/api/v2/pokemon/${term}`);
+      return {
+        name: data.name,
+        pokeId: data.id,
+        height: data.height,
+        weight: data.weight,
+        image: data.sprites.front_default,
+        ability: data.abilities[0]?.ability?.name || 'Unknown',
+        color: 'default',
+      };
     } catch (error) {
-      this.handleExceptions(error);
+      throw new NotFoundException(`Pokemon ${term} not found in external API`);
     }
   }
 
-  findAll( paginationDto: PaginationDto) {
-
-    const { limit = 10, offset = 0 } = paginationDto;
-    return this.pokemonModel.find()
-    .limit( limit )
-    .skip( offset )
-    .sort({
-      no: 1
-    })
-    .select('-__v');
-  }
-
-  async findOne(id: string): Promise<Pokemon> {
-    if (!isValidObjectId(id)) {
-      throw new NotFoundException(`El id ${id} no es un MongoID válido`);
-    }
-
-    const pokemon = await this.pokemonModel.findById(id);
+  async update(id: number, updateDto: UpdatePokemonDto): Promise<Pokemon> {
+    const pokemon = await this.pokemonModel.findOneAndUpdate({ pokeId: id }, updateDto, { new: true });
 
     if (!pokemon) {
-      throw new NotFoundException(`Pokemon con id ${id} no encontrado`);
+      throw new NotFoundException(`Pokemon with ID ${id} not found`);
     }
 
     return pokemon;
   }
 
-  update(id: number, updatePokemonDto: UpdatePokemonDto) {
-    return `This action updates a #${id} pokemon`;
-  }
+  async remove(id: string): Promise<void> {
+    const result = await this.pokemonModel.findByIdAndDelete(id);
 
-  async remove(id: string) {
-    const { deletedCount } = await this.pokemonModel.deleteOne({ _id: id });
-
-    if (deletedCount === 0) {
-      throw new BadRequestException(`Pokemon con id ${id} no encontrado`);
+    if (!result) {
+      throw new NotFoundException(`Pokemon with ID ${id} not found`);
     }
-
-    return { message: `Pokemon con id ${id} eliminado` };
-  }
-
-  private handleExceptions(error: any): never {
-    if (error.code === 11000) {
-      throw new BadRequestException(
-        `El Pokemon ya existe en la base de datos: ${JSON.stringify(
-          error.keyValue
-        )}`
-      );
-    }
-
-    console.error(error);
-    throw new InternalServerErrorException(
-      'No se pudo crear el Pokemon - revisar logs del servidor'
-    );
   }
 }
 

@@ -1,13 +1,25 @@
-import { IsInt, IsPositive, IsString, Min, MinLength} from "class-validator";
+import { IsNotEmpty } from 'class-validator';
 
 export class CreatePokemonDto {
+  @IsNotEmpty()
+  pokeId: number;
 
-    @IsInt()
-    @IsPositive()
-    @Min(1)
-    no: number;
+  @IsNotEmpty()
+  name: string;
 
-    @IsString({message: "El campo debe ser un string"})
-    @MinLength(2)
-    name: string;
+  @IsNotEmpty()
+  height: number;
+
+  @IsNotEmpty()
+  weight: number;
+
+  @IsNotEmpty()
+  ability: string;
+
+  @IsNotEmpty()
+  image: string;
+
+  @IsNotEmpty()
+  color: string;
 }
+
