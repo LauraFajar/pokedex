@@ -38,11 +38,13 @@
 
 .pokemon-card.registrado {
   border: 2px solid #10b981;
+  background-color: #e6ffe6;
 }
 
 .pokemon-card.no-registrado {
   border: 2px solid #ef4444;
-  opacity: 0.8;
+  opacity: 1;
+  background-color: #fff;
 }
 
 .detalles {

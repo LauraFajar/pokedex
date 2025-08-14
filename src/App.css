@@ -1,16 +1,7 @@
-.App {
-  font-family: sans-serif;
-  text-align: center;
-  padding: 20px;
-}
-
-.pokedex-grid {
+.app {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 20px;
+  padding: 20px;
 }
-
-
-

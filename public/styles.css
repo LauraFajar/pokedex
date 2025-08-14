@@ -1,0 +1,53 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+}
+
+h1 {
+  text-align: center;
+}
+.pokedex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.card {
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  width: 150px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: border 0.2s;
+}
+.card.captured {
+  border: 2px solid #4caf50;
+  background: #e8f5e9;
+}
+.card img {
+  width: 100px;
+  height: 100px;
+}
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  min-width: 300px;
+  position: relative;
+}
+.close {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  cursor: pointer;
+  font-size: 24px;
+}

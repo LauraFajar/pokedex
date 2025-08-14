@@ -1,26 +1,27 @@
-import { useState } from 'react';
-import './PokemonCard.css';
+import React from 'react'
+import './PokemonCard.css'
 
-const PokemonCard = ({ pokemon }) => {
-  const [showDetails, setShowDetails] = useState(false);
-
-  const imageUrl = pokemon.sprites?.front_default;
+const PokemonCard = ({ name, image, height, weight, ability, registered, onRegister }) => {
+  const handleClick = () => {
+    if (!registered) {
+      onRegister(name)
+    }
+  }
 
   return (
-    <div className="pokemon-card" onClick={() => setShowDetails(!showDetails)}>
-      <img src={imageUrl} alt={pokemon.name} />
-      <h3>{pokemon.name}</h3>
-      {showDetails && (
-        <div className="details">
-          <p>Altura: {pokemon.height}</p>
-          <p>Peso: {pokemon.weight}</p>
-          <p>Tipo: {pokemon.types.map(t => t.type.name).join(', ')}</p>
-        </div>
-      )}
+    <div
+      className={`pokemon-card ${registered ? 'registrado' : 'no-registrado'}`}
+      onClick={handleClick}
+      style={{ pointerEvents: registered ? 'none' : 'auto' }}
+    >
+      <img src={image} alt={name} />
+      <h2>{name}</h2>
+      <p>Altura: {height}</p>
+      <p>Peso: {weight}</p>
+      <p>Habilidad: {ability}</p>
+      <p>{registered ? 'Capturado' : 'Haz clic para capturar'}</p>
     </div>
-  );
-};
+  )
+}
 
-export default PokemonCard;
-
-
+export default PokemonCard
