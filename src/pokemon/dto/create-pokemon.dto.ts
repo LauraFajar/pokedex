@@ -18,8 +18,5 @@ export class CreatePokemonDto {
 
   @IsNotEmpty()
   image: string;
-
-  @IsNotEmpty()
-  color: string;
 }
 

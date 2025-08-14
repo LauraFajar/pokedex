@@ -1,36 +1,53 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-
-import axios, { AxiosInstance } from 'axios';
-import { PokeResponse } from './interfaces/poke-response.interface';
-import { Pokemon } from 'src/pokemon/entities/pokemon.entity';
-import { AxiosAdapter } from 'src/common/adapters/axios.adapter';
+import { Pokemon } from '../pokemon/entities/pokemon.entity';
 
 @Injectable()
 export class SeedService {
-  private readonly axios: AxiosInstance = axios;
-
   constructor(
     @InjectModel(Pokemon.name)
     private readonly pokemonModel: Model<Pokemon>,
-
-    private readonly http: AxiosAdapter,
   ) {}
 
   async executeSeed() {
     await this.pokemonModel.deleteMany({});
+    return { message: 'Seed ejecutado correctamente. Colección limpiada.' };
+  }
 
-    const data = await this.http.get<PokeResponse>('https://pokeapi.co/api/v2/pokemon?limit=50');
+  async capturePokemon(data: {
+    pokeId: number;
+    name: string;
+    height: number;
+    weight: number;
+    ability: string;
+    image: string;
+  }) {
+    let pokemon = await this.pokemonModel.findOne({ pokeId: data.pokeId });
+    if (!pokemon) {
+      pokemon = new this.pokemonModel({ ...data, captured: true });
+      await pokemon.save();
+    } else {
+      pokemon.captured = true;
+      await pokemon.save();
+    }
+    return { success: true, pokeId: data.pokeId, name: data.name };
+  }
 
-    const pokemonToInsert = data.results.map(({ name, url }) => {
-      const segments = url.split('/');
-      const no = +segments[segments.length - 2];
-      return { name, no };
-    });
+  async getCapturedPokemons() {
+    const pokemons = await this.pokemonModel.find({ captured: true });
+    return pokemons.map(p => ({
+      pokeId: p.pokeId,
+      name: p.name,
+      height: p.height,
+      weight: p.weight,
+      ability: p.ability,
+      image: p.image,
+      captured: p.captured,
+    }));
+  }
 
-    await this.pokemonModel.insertMany(pokemonToInsert);
-
-    return 'Seed executed';
+  async getPokemonById(pokeId: number) {
+    return this.pokemonModel.findOne({ pokeId });
   }
 }

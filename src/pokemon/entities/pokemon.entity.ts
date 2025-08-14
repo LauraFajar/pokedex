@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-@Schema()
+@Schema({collection: 'pokemons_new'})
 export class Pokemon extends Document {
   @Prop({ required: true, unique: true })
   pokeId: number;
 
-  @Prop()
+  @Prop({ required: true })
   name: string;
 
   @Prop()
@@ -21,9 +21,8 @@ export class Pokemon extends Document {
   @Prop()
   image: string;
 
-  @Prop()
-  color: string;
+  @Prop({ default: false })
+  captured: boolean;
 }
 
 export const PokemonSchema = SchemaFactory.createForClass(Pokemon);
-

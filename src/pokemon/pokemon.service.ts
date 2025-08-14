@@ -1,83 +1,48 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, isValidObjectId } from 'mongoose';
+import { Model } from 'mongoose';
 import { Pokemon } from './entities/pokemon.entity';
-import { CreatePokemonDto } from './dto/create-pokemon.dto';
-import { UpdatePokemonDto } from './dto/update-pokemon.dto';
-import axios from 'axios';
 
 @Injectable()
 export class PokemonService {
   constructor(
-    @InjectModel(Pokemon.name) private readonly pokemonModel: Model<Pokemon>,
+    @InjectModel(Pokemon.name)
+    private readonly pokemonModel: Model<Pokemon>,
   ) {}
 
-  async create(createPokemonDto: CreatePokemonDto): Promise<Pokemon> {
-    const pokemon = new this.pokemonModel(createPokemonDto);
-    return pokemon.save();
-  }
-
-  async findAll(): Promise<Pokemon[]> {
-    return this.pokemonModel.find();
-  }
-
-  async findOne(term: string): Promise<Pokemon> {
-  let pokemon: Pokemon | null = null;
-
-  // 1. Si es un ObjectId válido
-  if (isValidObjectId(term)) {
-    pokemon = await this.pokemonModel.findById(term);
-    if (pokemon) return pokemon;
-  }
-
-  // 2. Si es un nombre (string)
-  pokemon = await this.pokemonModel.findOne({ name: term.toLowerCase().trim() });
-  if (pokemon) return pokemon;
-
-  // 3. Si es un número (pokeId)
-  const pokeId = Number(term);
-  if (!isNaN(pokeId)) {
-    pokemon = await this.pokemonModel.findOne({ pokeId });
-    if (pokemon) return pokemon;
-  }
-
-  // 4. Si no encuentra nada
-  throw new NotFoundException(`Pokemon with identifier "${term}" not found`);
-}
-
-  async getFromExternalAPI(term: string) {
-    try {
-      const { data } = await axios.get(`https://pokeapi.co/api/v2/pokemon/${term}`);
-      return {
-        name: data.name,
-        pokeId: data.id,
-        height: data.height,
-        weight: data.weight,
-        image: data.sprites.front_default,
-        ability: data.abilities[0]?.ability?.name || 'Unknown',
-        color: 'default',
-      };
-    } catch (error) {
-      throw new NotFoundException(`Pokemon ${term} not found in external API`);
-    }
-  }
-
-  async update(id: number, updateDto: UpdatePokemonDto): Promise<Pokemon> {
-    const pokemon = await this.pokemonModel.findOneAndUpdate({ pokeId: id }, updateDto, { new: true });
-
+  async capturePokemon(data: {
+    pokeId: number;
+    name: string;
+    height: number;
+    weight: number;
+    ability: string;
+    image: string;
+  }) {
+    let pokemon = await this.pokemonModel.findOne({ pokeId: data.pokeId });
     if (!pokemon) {
-      throw new NotFoundException(`Pokemon with ID ${id} not found`);
+      pokemon = new this.pokemonModel({ ...data, captured: true });
+      await pokemon.save();
+    } else {
+      pokemon.captured = true;
+      await pokemon.save();
     }
-
-    return pokemon;
+    return { success: true, pokeId: data.pokeId, name: data.name };
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.pokemonModel.findByIdAndDelete(id);
+  async getCapturedPokemons() {
+    const pokemons = await this.pokemonModel.find({ captured: true });
+    return pokemons.map(p => ({
+      pokeId: p.pokeId,
+      name: p.name,
+      height: p.height,
+      weight: p.weight,
+      ability: p.ability,
+      image: p.image,
+      captured: p.captured,
+    }));
+  }
 
-    if (!result) {
-      throw new NotFoundException(`Pokemon with ID ${id} not found`);
-    }
+  async getPokemonById(pokeId: number) {
+    return this.pokemonModel.findOne({ pokeId });
   }
 }
-
